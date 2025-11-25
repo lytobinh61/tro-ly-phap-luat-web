@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Sửa tài khoản</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { background: #f3f6fa; font-family: Arial; }
+        .container {
+            width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+        }
+        input[type="text"], input[type="password"], input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 12px;
+        }
+        button {
+            background: #0072ff;
+            color: white;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background: #005ad1; }
+        .top-links {
+            margin-bottom: 15px;
+        }
+        .top-links a {
+            text-decoration: none;
+            color: #0072ff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="top-links">
+        <a href="{{ url_for('admin_dashboard') }}">⬅ Quay về trang admin</a>
+    </div>
+
+    <h2>Sửa tài khoản: {{ user.username }}</h2>
+
+    <form method="post" action="{{ url_for('admin_edit_user', user_id=user.id) }}">
+
+        <label>Ngày hết hạn:</label>
+        <input type="date" name="expire_date" value="{{ user.expire_date }}" required>
+
+        <label>Mật khẩu mới (nếu đổi):</label>
+        <input type="password" name="password" placeholder="Để trống nếu không đổi">
+
+        <label>
+            <input type="checkbox" name="is_active" {% if user.is_active_flag %}checked{% endif %}>
+            Cho phép đăng nhập
+        </label>
+        <br><br>
+
+        <label>
+            <input type="checkbox" name="is_admin" {% if user.is_admin_flag %}checked{% endif %}>
+            Quyền admin
+        </label>
+
+        <br><br>
+        <button type="submit">Lưu thay đổi</button>
+    </form>
+
+</div>
+
+</body>
+</html>

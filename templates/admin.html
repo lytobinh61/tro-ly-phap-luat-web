@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý tài khoản</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="main-container">
+
+    <div class="header">
+        <div class="title">👤 Quản lý tài khoản người dùng</div>
+        <div class="user-info">
+            <a href="{{ url_for('index') }}">⬅ Về trang trợ lý</a>
+            | Xin chào, <strong>{{ current_user.username }}</strong>
+            | <a href="{{ url_for('logout') }}">Đăng xuất</a>
+        </div>
+    </div>
+
+    <!-- Thông báo -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul style="color: green;">
+                {% for msg in messages %}
+                    <li>{{ msg }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Danh sách user -->
+    <h3>Danh sách tài khoản</h3>
+    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+        <tr style="background: #eef2ff;">
+            <th>ID</th>
+            <th>Tài khoản</th>
+            <th>Hết hạn</th>
+            <th>Đang hoạt động</th>
+            <th>Admin</th>
+            <th>Chỉnh sửa</th>
+        </tr>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.expire_date }}</td>
+            <td>{{ "Có" if u.is_active_flag else "Không" }}</td>
+            <td>{{ "Có" if u.is_admin_flag else "Không" }}</td>
+            <td>
+				<a href="{{ url_for('admin_edit_user', user_id=u.id) }}">Sửa</a><br>
+				Gia hạn:
+				<a href="{{ url_for('admin_extend_30', user_id=u.id) }}">+30</a> |
+				<a href="{{ url_for('admin_extend_60', user_id=u.id) }}">+60</a> |
+				<a href="{{ url_for('admin_extend_90', user_id=u.id) }}">+90</a> |
+				<a href="{{ url_for('admin_extend_180', user_id=u.id) }}">+180</a>
+			</td>
+
+        </tr>
+        {% endfor %}
+    </table>
+
+    <hr>
+
+    <!-- Form tạo user mới -->
+    <h3>Thêm tài khoản mới</h3>
+    <form method="post" action="{{ url_for('admin_create_user') }}" style="font-size: 14px;">
+        <label>Tài khoản:</label><br>
+        <input type="text" name="username" required><br><br>
+
+        <label>Mật khẩu:</label><br>
+        <input type="password" name="password" required><br><br>
+
+        <label>Ngày hết hạn:</label><br>
+        <input type="date" name="expire_date" required><br><br>
+
+        <label>
+            <input type="checkbox" name="is_active" checked>
+            Cho phép đăng nhập
+        </label><br>
+
+        <label>
+            <input type="checkbox" name="is_admin">
+            Tài khoản admin
+        </label><br><br>
+
+        <button type="submit">Tạo tài khoản</button>
+    </form>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Trợ lý phân tích văn bản pháp luật</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="main-container">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="title">📘 Trợ lý phân tích văn bản pháp luật</div>
+        <div class="user-info">
+			Xin chào, <strong>{{ username }}</strong>
+			{% if current_user.is_admin() %}
+				| <a href="{{ url_for('admin_dashboard') }}">Trang admin</a>
+			{% endif %}
+			| <a href="{{ url_for('logout') }}">Đăng xuất</a>
+		</div>
+
+
+
+    </div>
+
+    <!-- Hàng số hiệu / chủ đề -->
+    <div class="top-row">
+        <div class="row-item">
+            <label for="so-hieu">Số hiệu văn bản:</label>
+            <input id="so-hieu" type="text" placeholder="vd: 15/2023/NĐ-CP">
+            <button type="button" onclick="timHieuVanBan()">Tìm hiểu văn bản</button>
+        </div>
+        <div class="row-item">
+            <label for="chu-de">Chủ đề:</label>
+            <input id="chu-de" type="text" placeholder="vd: chuyển đất nông nghiệp sang thổ cư">
+            <button type="button" onclick="timTheoChuDe()">Tìm kiếm theo chủ đề</button>
+        </div>
+    </div>
+
+    <!-- Khung kết quả -->
+    <div id="result-box"></div>
+
+    <!-- Hàng nhập yêu cầu tiếp -->
+    <div class="bottom-row">
+        <label for="chat-input">Yêu cầu tiếp:</label>
+        <div class="bottom-input-row">
+            <input id="chat-input" type="text"
+                   placeholder="Gõ 1, 2, 3, 4, 'tóm tắt', 'giải thích điều 5'... rồi nhấn Gửi hoặc Enter">
+            <button type="button" onclick="guiChat()">Gửi</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Trạng thái hiện tại
+    let currentMode = null;      // "tim_hieu" hoặc "chu_de"
+    let currentSoHieu = "";
+    let currentChuDe = "";
+
+    function appendMessage(content, sender) {
+        const box = document.getElementById("result-box");
+        const div = document.createElement("div");
+        div.className = sender === "user" ? "msg user" : "msg bot";
+        div.innerText = (sender === "user" ? "Bạn: " : "Trợ lý: ") + content;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function showLoading() {
+        const box = document.getElementById("result-box");
+        const div = document.createElement("div");
+        div.id = "loading-msg";
+        div.className = "msg bot";
+        div.innerText = "⏳ Đang xử lý...";
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function hideLoading() {
+        const loading = document.getElementById("loading-msg");
+        if (loading) loading.remove();
+    }
+
+    async function callApi(textToSend, userDisplayText = null) {
+        // Hiển thị câu người dùng gõ
+        if (userDisplayText) {
+            appendMessage(userDisplayText, "user");
+        }
+
+        // Hiển thị trạng thái đang xử lý
+        showLoading();
+
+        try {
+            const res = await fetch("{{ url_for('api_send') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({text: textToSend})
+            });
+            const data = await res.json();
+
+            hideLoading();
+            appendMessage(data.reply, "bot");
+        } catch (err) {
+            hideLoading();
+            appendMessage("❌ Lỗi kết nối tới server: " + err, "bot");
+        }
+    }
+
+    function timHieuVanBan() {
+        const soHieu = document.getElementById("so-hieu").value.trim();
+        if (!soHieu) {
+            alert("Bạn chưa nhập số hiệu văn bản.");
+            return;
+        }
+        currentMode = "tim_hieu";
+        currentSoHieu = soHieu;
+
+        const userText = `Tôi chọn chức năng 'Tìm hiểu văn bản'. Số hiệu văn bản: ${soHieu}.`;
+        callApi(userText, userText);
+    }
+
+    function timTheoChuDe() {
+        const chuDe = document.getElementById("chu-de").value.trim();
+        if (!chuDe) {
+            alert("Bạn chưa nhập chủ đề.");
+            return;
+        }
+        currentMode = "chu_de";
+        currentChuDe = chuDe;
+
+        const userText = `Tôi chọn chức năng 'Tìm kiếm theo chủ đề'. Chủ đề: ${chuDe}.`;
+        callApi(userText, userText);
+    }
+
+    function guiChat() {
+        const input = document.getElementById("chat-input");
+        const text = input.value.trim();
+        if (!text) return;
+
+        // Xóa sau khi đã lấy text (tránh cảm giác "không nhập được")
+        input.value = "";
+
+        if (!currentMode) {
+            callApi(
+                `Người dùng chưa chọn chức năng nhưng nhập: "${text}". Hãy nhắc họ bấm 'Tìm hiểu văn bản' hoặc 'Tìm kiếm theo chủ đề' trước.`,
+                text
+            );
+            return;
+        }
+
+        let prompt;
+        if (currentMode === "tim_hieu") {
+            prompt =
+                `Chúng ta đang ở chức năng 'Tìm hiểu văn bản' với văn bản ${currentSoHieu}.\n` +
+                `Người dùng vừa nhập: "${text}" (có thể là số lựa chọn 1–4 hoặc câu như 'tóm tắt', 'giải thích điều 5').\n` +
+                `Hãy:\n` +
+                `- Hiểu đây là lựa chọn tiếp theo dựa trên menu 1–4 mà bạn đã đưa ra trước đó.\n` +
+                `- Thực hiện HÀNH ĐỘNG tương ứng, không lặp lại nguyên menu 1–4 nếu không cần thiết.\n` +
+                `- Cuối câu trả lời, nếu phù hợp, nhắc lại ngắn gọn: 'Bạn có thể tiếp tục chọn 1, 2, 3, 4 hoặc 0 để đổi tác vụ'.`;
+        } else if (currentMode === "chu_de") {
+            prompt =
+                `Chúng ta đang ở chức năng 'Tìm kiếm theo chủ đề' với chủ đề "${currentChuDe}".\n` +
+                `Người dùng vừa nhập: "${text}".\n` +
+                `Hãy xử lý đầu vào này như bước tiếp theo trong luồng 'Tìm kiếm theo chủ đề', theo đúng Instructions: ` +
+                `hoặc phân tích văn bản, hoặc tóm tắt điểm mới, hoặc giải thích điều khoản... tùy nội dung user vừa nhập.\n` +
+                `Đừng chỉ lặp lại menu; hãy thực hiện hành động cụ thể.`;
+        }
+
+        callApi(prompt, text);
+    }
+
+    // Gửi bằng Enter khi focus ở ô chat
+    document.getElementById("chat-input").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            guiChat();
+        }
+    });
+</script>
+
+</body>
+</html>
